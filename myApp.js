@@ -32,11 +32,11 @@ const format_date = (date_time) => {
 };
 
 const is_equal = (date_from_api, date_from_db) => {
-  return date_from_api.valueOf() == date_from_db.valueOf();
+  return date_from_api.valueOf() === date_from_db.valueOf();
 };
 
 // Mongoose schema and model
-var Schema = mongoose.Schema;
+const Schema = mongoose.Schema;
 
 const userSchema = new Schema({
   first_name: { type: String, required: true },
@@ -176,15 +176,15 @@ app.post("/api/user-signup", (req, res) => {
   });
 });
 
-// view user bookings api (testing)
+// View user bookings API (testing)
 app.get("/api/get-user-bookings/:_id", async (req, res) => {
   if (api_key && req.params._id) {
     try {
-      var bookings = await Booking.findById(req.params._id).sort({ date: "1" });
+      const bookings = await Booking.findById(req.params._id).sort({ date: "1" });
       if (bookings && bookings.length) {
         res.json({
           success: true,
-          bookings: data,
+          bookings: bookings,
         });
       } else {
         res.json({
@@ -192,7 +192,7 @@ app.get("/api/get-user-bookings/:_id", async (req, res) => {
           error: "No user bookings found.",
         });
       }
-    } catch(e) {
+    } catch (e) {
       res.sendStatus(500);
     }
   } else {
