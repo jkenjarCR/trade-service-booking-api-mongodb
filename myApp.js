@@ -52,7 +52,42 @@ const userSchema = new Schema({
   password: { type: String, required: true },
 });
 
+const bookingSchema = new mongoose.Schema({
+  time: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  date: {
+    type: Date,
+    required: true,
+  },
+  more_info: {
+    type: String,
+    trim: true,
+  },
+  location: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  service: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  is_consultation: {
+    type: Boolean,
+    default: false,
+  },
+  residence_type: {
+    type: String,
+    required: true,
+  },
+});
+
 const User = mongoose.model("User", userSchema);
+const Booking = mongoose.model("Booking", bookingSchema);
 
 // Sign-in API
 app.get("/api/sign-in", (req, res) => {
@@ -139,6 +174,30 @@ app.post("/api/user-signup", (req, res) => {
       }
     }
   });
+});
+
+// view user bookings api (testing)
+app.get("/api/get-user-bookings/:_id", async (req, res) => {
+  if (api_key && req.params._id) {
+    try {
+      var bookings = await Booking.findById(req.params._id).sort({ date: "1" });
+      if (bookings && bookings.length) {
+        res.json({
+          success: true,
+          bookings: data,
+        });
+      } else {
+        res.json({
+          success: false,
+          error: "No user bookings found.",
+        });
+      }
+    } catch(e) {
+      res.sendStatus(500);
+    }
+  } else {
+    res.sendStatus(401);
+  }
 });
 
 // Start the server
