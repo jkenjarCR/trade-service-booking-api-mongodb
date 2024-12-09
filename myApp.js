@@ -53,6 +53,10 @@ const userSchema = new Schema({
 });
 
 const bookingSchema = new mongoose.Schema({
+  user_id: {
+    type: Number,
+    required: true,
+  },
   time: {
     type: String,
     required: true,
@@ -180,7 +184,9 @@ app.post("/api/user-signup", (req, res) => {
 app.get("/api/get-user-bookings/:_id", async (req, res) => {
   if (api_key && req.params._id) {
     try {
-      const bookings = await Booking.findById(req.params._id).sort({ date: "1" });
+      const bookings = await Booking.find({ user_id: req.params._id }).sort({
+        date: 1,
+      });
       if (bookings && bookings.length) {
         res.json({
           success: true,
@@ -198,6 +204,92 @@ app.get("/api/get-user-bookings/:_id", async (req, res) => {
   } else {
     res.sendStatus(401);
   }
+});
+
+app.post("/api/user-book-service", async (req, res) => {
+  var { user_id } = req.body;
+  const date_from_api = format_date(`${req.body.date} ${req.body.time}`);
+  var user_has_consultation = false;
+  var user_has_booking_at_selected_time = false;
+  const booking = {
+    user_id: req.body.user_id,
+    time: req.body.time,
+    date: req.body.date,
+    more_info: req.body.more_info,
+    location: req.body.location,
+    service: req.body.service,
+    is_consultation: req.body.is_consultation,
+    residence_type: req.body.residence_type,
+  };
+  const new_booking = new Booking(booking);
+
+  Booking.find({ user_id: user_id }, function (err, rows) {
+    if (err) {
+      res.json(err);
+    } else {
+      for (const booking of rows) {
+        if (parseInt(booking.is_consultation) === 1) {
+          user_has_consultation = true;
+        }
+
+        if (
+          is_equal(
+            date_from_api,
+            format_date(`${booking.date} ${booking.time}`)
+          ) &&
+          booking.is_past_booking != 1
+        ) {
+          if (!user_has_booking_at_selected_time) {
+            user_has_booking_at_selected_time = true;
+          }
+        }
+      }
+    }
+
+    if (req.body.is_consultation) {
+      user_has_consultation = true;
+    }
+
+    if (!user_has_consultation) {
+      res.send({
+        success: false,
+        message:
+          "You need to book a consultation in order to book an appointment.",
+      });
+      return;
+    }
+
+    if (user_has_booking_at_selected_time) {
+      res.send({
+        success: false,
+        message: "You already have a booking at the selected time.",
+      });
+      return;
+    }
+
+    if (api_key && req.body.user_id) {
+      new_booking.save(function (err, data) {
+        if (err) {
+          console.log(err.message);
+        } else {
+          Booking.find({ user_id: user_id }, (err, rows) => {
+            if (err) {
+              console.error(err);
+            } else if (rows) {
+              res.send({
+                success: true,
+                message: "Booking has been made successfully",
+                bookings: rows,
+                booking_data: req.body,
+              });
+            }
+          });
+        }
+      });
+    } else {
+      res.sendStatus(401);
+    }
+  });
 });
 
 // Start the server
